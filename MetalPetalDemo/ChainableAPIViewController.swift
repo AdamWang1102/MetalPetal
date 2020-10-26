@@ -77,6 +77,28 @@ class ChainableAPIViewController: UIViewController, AVCaptureVideoDataOutputSamp
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        self.cameraImage = MTIImage(cvPixelBuffer: CMSampleBufferGetImageBuffer(sampleBuffer)!, alphaType: .alphaIsOne)
+//        self.cameraImage = MTIImage(cvPixelBuffer: CMSampleBufferGetImageBuffer(sampleBuffer)!, alphaType: .alphaIsOne)
+        //TODO: - Debug
+        let inputImage = MTIImage(cvPixelBuffer: CMSampleBufferGetImageBuffer(sampleBuffer)!, alphaType: .alphaIsOne)
+        let saturationFilter = MTISaturationFilter()
+        saturationFilter.saturation = 1.0
+        
+        let exposureFilter = MTIExposureFilter()
+        exposureFilter.exposure = 1
+        
+        let contrastFilter = MTIContrastFilter()
+        contrastFilter.contrast = 0
+        
+        let overlayBlendFilter = MTIBlendFilter(blendMode: .overlay)
+        
+        let enableSaturationAdjustment = true
+        
+        let image = FilterGraph.makeImage { output in
+            inputImage => (enableSaturationAdjustment ? AnyIOPort(saturationFilter) : AnyIOPort(ImagePassthroughPort())) => exposureFilter => contrastFilter => overlayBlendFilter.inputPorts.inputImage
+            exposureFilter => overlayBlendFilter.inputPorts.inputBackgroundImage
+            overlayBlendFilter => output
+        }
+        
+        self.imageView.image = image
     }
 }
